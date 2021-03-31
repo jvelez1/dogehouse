@@ -13,7 +13,6 @@ defmodule Beef.Follows do
   alias Beef.Schemas.Follow
   alias Beef.Schemas.User
   alias Beef.Schemas.Room
-  alias Beef.Users
 
   @spec get_followers_online_and_not_in_a_room(String.t()) :: [Follow.t()]
   def get_followers_online_and_not_in_a_room(user_id) do
@@ -48,8 +47,6 @@ defmodule Beef.Follows do
 
   # fetch all the users
   def fetch_following_online(user_id, offset \\ 0) do
-    max_room_size = Application.fetch_env!(:kousa, :max_room_size)
-
     items =
       from(
         f in Follow,
@@ -62,7 +59,7 @@ defmodule Beef.Follows do
         where:
           f.followerId == ^user_id and
             (is_nil(cr.isPrivate) or
-               (cr.isPrivate == false and cr.numPeopleInside < ^max_room_size)),
+               cr.isPrivate == false),
         select: %{u | currentRoom: cr, followsYou: not is_nil(f2.userId)},
         limit: ^@fetch_limit,
         offset: ^offset,
@@ -75,7 +72,7 @@ defmodule Beef.Follows do
   end
 
   def fetch_invite_list(user_id, offset \\ 0) do
-    user = Users.get_by_id(user_id)
+    user = Beef.Users.get_by_id(user_id)
 
     items =
       from(
